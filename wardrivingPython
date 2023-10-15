@@ -1,0 +1,86 @@
+import subprocess
+import pandas as pd
+import time
+import json
+from urllib.request import urlopen
+import re
+
+dash = pd.read_excel('w5.xlsx')
+
+
+df = pd.DataFrame()
+nn = []
+nn1 = []
+nn2=[]
+nn3=[]
+nn4=[]
+latt = []
+lonn = []
+
+for i in range(1, 5):
+    time.sleep(10)
+    devices = subprocess.check_output(['netsh','wlan','show','network'])
+    devices = devices.decode('ascii')
+    devices= devices.replace("\r","")
+
+    dev = []
+
+    dev.append(devices)
+
+    lines = dev[0].strip().split("\n")
+
+    x = 0
+    y = 1
+    for l in lines:
+        if x >= 2:
+            ll = str(l)
+            if ":" in str(l):
+                xxx = ll.split(':')
+                head = xxx[0]
+                body = xxx[1]
+
+                if y == 1:
+                    nn1.append(body)
+                    print("Found new SSID: " + str(body))
+                    urlopen("http://ipinfo.io/json")
+                    data = json.load(urlopen("http://ipinfo.io/json"))
+                    lat = data['loc'].split(',')[0]
+                    latt.append(lat)
+                    lon = data['loc'].split(',')[1]
+                    lonn.append(lon)  
+                    y += 1
+                elif y == 2:
+                    nn2.append(body)
+                    y += 1
+                elif y == 3:
+                    nn3.append(body)
+                    y += 1
+                elif y == 4:
+                    nn4.append(body)
+                    y = 1
+
+            x += 1
+        else:
+            x +=1
+
+    print("Scan number " + str(i))
+
+
+columns=["SSID","Network type","Authentication","Encryption", "Latitude", "Longitude"]
+
+
+df4 = pd.DataFrame()
+
+df4['SSID'] = nn1
+df4['Network type'] = nn2
+df4['Authentication'] = nn3
+df4['Encryption'] = nn4
+df4['Latitude'] = latt
+df4['Longitude'] = lonn
+
+frames = [dash, df4]
+df5 = pd.concat(frames)
+
+df5.drop_duplicates(subset=columns, inplace=True)
+df5.to_excel("w5.xlsx", index=False)
+
